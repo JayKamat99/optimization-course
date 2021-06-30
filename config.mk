@@ -21,9 +21,9 @@ G4 = 0
 #PNG = 0
 
 #EIGEN = 0
-#CERES = 0
-#NLOPT = 0
-#IPOPT = 0
+CERES = 0
+NLOPT = 0
+IPOPT = 0
 
 #FCL = 0
 PCL = 0
