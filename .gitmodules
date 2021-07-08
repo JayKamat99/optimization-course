@@ -6,4 +6,4 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "rai-robotModels"]
 	path = rai-robotModels
-	url = https://github.com/MarcToussaint/rai-robotModels.git
+	url = https://github.com/JayKamat99/rai-robotModels.git
