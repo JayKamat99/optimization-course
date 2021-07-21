@@ -8,8 +8,8 @@ OBJS = main.o
 GL = 1
 
 CPATHS += /usr/include/eigen3
-
-LIBS += -lompl   
+CPATHS += /home/jay/ompl/src
+LIBS += -Wl,-rpath,</home/jay/ompl/src> -L</home/jay/ompl/src> -lompl
 
 
 
