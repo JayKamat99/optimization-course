@@ -10,7 +10,6 @@ GL = 1
 
 CPATHS += /usr/include/eigen3
 CPATHS += /usr/local/include/ompl-1.5
-LIBS += -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lompl
-
+LIBS += -lompl
 
 include $(BASE)/build/generic.mk
