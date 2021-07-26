@@ -178,9 +178,9 @@ void compute_collisions_with_KOMO() {
 int main(int /*argc*/, char ** /*argv*/) {
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
 
-  visualize_random();
+  // visualize_random();
   compute_collisions_with_KOMO();
-  planWithSimpleSetupKOMO();
+  // planWithSimpleSetupKOMO();
 
   return 0;
 }
