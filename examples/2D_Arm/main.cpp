@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/spaces/special/TorusStateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/planners/prm/SPARS.h>
 
@@ -19,14 +20,21 @@ struct ValidityCheckWithKOMO {
 
     // rai: uses quaternion with real part first
     // ompl: uses quaternion with real part last
-    const auto *RealState = state->as<ob::RealVectorStateSpace::StateType>();
+    // const auto *RealState = state->as<ob::RealVectorStateSpace::StateType>();
+    const auto *TorusState = state->as<ob::TorusStateSpace::StateType>();
     // const auto *se3state = state->as<ob::SE3StateSpace::StateType>();
 
-    arr x_query = arr
+    /*arr x_query = arr
     {
       RealState->operator[](0),
       RealState->operator[](1)
-    };
+    };*/
+
+    arr x_query = arr
+      {
+        TorusState->getS1(),
+        TorusState->getS2()
+      };
 
     arr phi;
     nlp.evaluate(phi, NoArr, x_query);
@@ -39,7 +47,7 @@ struct ValidityCheckWithKOMO {
   }
 };
 
-void planWithSimpleSetupKOMOwithCollissions(){
+void planWithSimpleSetupKOMOinR2(){
   //construct the configuration space we will be working in
   auto space(std::make_shared<ob::RealVectorStateSpace>(2));
 
@@ -70,13 +78,13 @@ void planWithSimpleSetupKOMOwithCollissions(){
   // create a random start state
   ob::ScopedState<> start(space);
 
-  start = std::vector<double>{-1, 0};
+  start = std::vector<double>{1, 0};
   // start.random();
 
   ob::ScopedState<> goal(space);
   // goal.random();
 
-  goal = std::vector<double>{ 1, 0};
+  goal = std::vector<double>{-2.32849, 1.38262}; 
 
   std::cout << start << std::endl;
   std::cout << goal << std::endl;
@@ -86,8 +94,8 @@ void planWithSimpleSetupKOMOwithCollissions(){
   ss.setStartAndGoalStates(start, goal);
 
   //Define planner
-  // auto planner(std::make_shared<og::SPARS>(ss.getSpaceInformation()));
-  // ss.setPlanner(planner);
+  auto planner(std::make_shared<og::SPARS>(ss.getSpaceInformation()));
+  ss.setPlanner(planner);
 
   // this call is optional, but we put it in to get more output information
   ss.setup();
@@ -113,6 +121,7 @@ void planWithSimpleSetupKOMOwithCollissions(){
         RealState->operator[](0),
         RealState->operator[](1)
       };
+
       C.setJointState(x_query);
       C.watch(true);
     }
@@ -121,15 +130,9 @@ void planWithSimpleSetupKOMOwithCollissions(){
     std::cout << "No solution found" << std::endl;
 }
 
-void planWithSimpleSetupKOMO(){
+void planWithSimpleSetupKOMOinT2(){
   //construct the configuration space we will be working in
-  auto space(std::make_shared<ob::RealVectorStateSpace>(2));
-
-  // set the bounds
-  ob::RealVectorBounds bounds(2);
-  bounds.setLow(-1);
-  bounds.setHigh(1);
-  space->setBounds(bounds);
+  auto space(std::make_shared<ob::TorusStateSpace>());
 
   // define a simple setup class
   og::SimpleSetup ss(space);
@@ -141,23 +144,22 @@ void planWithSimpleSetupKOMO(){
   KOMO komo;
   komo.setModel(C, true);
   komo.setTiming(1, 1, 1, 1);
-  // komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1});
+  komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1});
   komo.run_prepare(0);
-  // auto nlp = std::make_shared<KOMO::Conv_KOMO_SparseNonfactored>(komo, false);
-  // ValidityCheckWithKOMO checker(*nlp);
 
-  // ss.setStateValidityChecker(
-  //     [&checker](const ob::State *state) { return checker.check(state); });
+  auto nlp = std::make_shared<KOMO::Conv_KOMO_SparseNonfactored>(komo, false);
+  ValidityCheckWithKOMO checker(*nlp);
+
+  ss.setStateValidityChecker(
+      [&checker](const ob::State *state) { return checker.check(state); });
 
   // create a start state
   ob::ScopedState<> start(space);
-  start[0] = -1;
-  start[1] = 0;
+  start = std::vector<double>{-1, 0};
 
   // create a goal state
   ob::ScopedState<> goal(space);
-  goal[0] = 1;
-  goal[1] = 0;
+  goal = std::vector<double>{1, 0};
 
   // set the start and goal states
   ss.setStartAndGoalStates(start, goal);
@@ -172,30 +174,41 @@ void planWithSimpleSetupKOMO(){
   if (solved) {
     std::cout << "Found solution:" << std::endl;
     // print the path to screen
-    // ss.simplifySolution();   //This uses the shortcutting algo..
-    ss.getSolutionPath().print(std::cout);
+    ss.simplifySolution();   //This uses the shortcutting algo..
+    ss.getSolutionPath().print(std::cout); //This prints out the states
 
     // lets visualize the waypoints of the path (the trajectory is linear
     // interpolation between them)
 
     auto states = ss.getSolutionPath().getStates();
+    std::vector<arr> configs;
     for (auto &s : states) {
-      const auto *RealState = s->as<ob::RealVectorStateSpace::StateType>();
+      const auto *TorusState = s->as<ob::TorusStateSpace::StateType>();
 
       arr x_query = arr
       {
-        RealState->operator[](0),
-        RealState->operator[](1)
+        TorusState->getS1(),
+        TorusState->getS2()
       };
-
       // std::cout << x_query << std::endl;
+      configs.push_back(x_query);
       C.setJointState(x_query);
       C.watch(true);
     }
-
+    for (auto it = configs.begin(); it != configs.end(); it++)
+      cout << *it << " ";
   }
   else
     std::cout << "No solution found" << std::endl;
+
+  // komo.animateOptimization = 1;
+  // // komo.initWithWaypoints({{1,1},{2,2}} , 2, false);
+  // komo.optimize();
+  // komo.plotTrajectory();
+  // komo.checkGradients();
+  // rai::ConfigurationViewer V;
+  // V.setPath(C, komo.x, "result", false);
+  // while(V.playVideo());
 }
 
 void visualize_random() {
@@ -230,21 +243,19 @@ void compute_collisions_with_KOMO() {
 
   ObjectiveTypeA ot;
   nlp->getFeatureTypes(ot);
-  std::cout << ot << std::endl;
 
   arr phi;
-  arr x_query = arr{0, 0};
+  arr x_query = arr{-1, 0};
   nlp->evaluate(phi, NoArr, x_query);
-  std::cout << phi << std::endl;
+  std::cout << x_query << " " << phi << std::endl;
 
-  x_query = arr{0.5, 0.5};
+  x_query = arr{1, 0};
   nlp->evaluate(phi, NoArr, x_query);
-  std::cout << phi << std::endl;
+  std::cout << x_query << " " << phi << std::endl;
 
   size_t N = 20;
   for (size_t i = 0; i < N; i++) {
     arr pose = rand(2);
-    std::cout << pose << std::endl;
     C.setJointState(pose);
 
     nlp->evaluate(phi, NoArr, pose);
@@ -259,8 +270,8 @@ int main(int /*argc*/,char** /*argv*/){
 
   // visualize_random();
   // compute_collisions_with_KOMO();
-  // planWithSimpleSetupKOMO();
-  planWithSimpleSetupKOMOwithCollissions();
+  planWithSimpleSetupKOMOinT2();
+  // planWithSimpleSetupKOMOinR2();
 
   return 0;
 }
