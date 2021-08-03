@@ -47,11 +47,15 @@ void optimizeAndPlayMovie(){
   C.addFile(filename);
   KOMO komo;
   komo.setModel(C, true);
-  komo.setTiming(1, 10, 1, 2);
+  
+  komo.setTiming(1., 10, 5., 2);
+  komo.add_qControlObjective({}, 2, 1.);
+
   // komo.addObjective({1.}, FS_positionDiff, {"gripper", "ball"}, OT_sos, {1e1});
-  komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {1,0}, 0);  //small velocity in that time frame
-  komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1});
-  komo.run_prepare(0);
+  komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {4.142,0}, 0);  //small velocity in that time frame
+  komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1.});
+  komo.add_collision(true);
+  // komo.run_prepare(0);
 
   komo.animateOptimization = 1;
   komo.initWithWaypoints({{1,1},{2,2}} , 2, false); //Get these from the previous function
@@ -136,7 +140,7 @@ void planWithSimpleSetupKOMOinT2(){
 }
 
 int main(int /*argc*/,char** /*argv*/){
-  planWithSimpleSetupKOMOinT2();
+  // planWithSimpleSetupKOMOinT2();
   optimizeAndPlayMovie();
 
   return 0;
