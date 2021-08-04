@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/usr/local/include/ompl-1.5",
                 "/usr/include/eigen3",
-                "/home/jay/ompl/src"
+                "/home/jay/ompl/src",
+                "${workspaceFolder}/rai/rai"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

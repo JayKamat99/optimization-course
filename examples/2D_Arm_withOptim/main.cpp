@@ -12,7 +12,9 @@
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
-std::vector<arr> configs;
+// std::vector<arr> configs;
+arrA configs;
+static int i = 0;
 
 struct ValidityCheckWithKOMO {
   KOMO::Conv_KOMO_SparseNonfactored &nlp;
@@ -48,17 +50,17 @@ void optimizeAndPlayMovie(){
   KOMO komo;
   komo.setModel(C, true);
   
-  komo.setTiming(1., 10, 5., 2);
+  komo.setTiming(1., 50, 5., 2);
   komo.add_qControlObjective({}, 2, 1.);
 
-  // komo.addObjective({1.}, FS_positionDiff, {"gripper", "ball"}, OT_sos, {1e1});
-  komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {4.142,0}, 0);  //small velocity in that time frame
+  komo.addObjective({1.}, FS_positionDiff, {"gripper", "ball"}, OT_sos, {1e1});
+  // komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {4.142,0}, 0);  //small velocity in that time frame
   komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1.});
   komo.add_collision(true);
   // komo.run_prepare(0);
 
   komo.animateOptimization = 1;
-  komo.initWithWaypoints({{1,1},{2,2}} , 2, false); //Get these from the previous function
+  komo.initWithWaypoints(configs , i, false); //Get these from the previous function
   komo.optimize();
   komo.plotTrajectory();
   komo.checkGradients();
@@ -92,11 +94,14 @@ void planWithSimpleSetupKOMOinT2(){
 
   // create a start state
   ob::ScopedState<> start(space);
-  start = std::vector<double>{-1, 0};
+  start[0] = komo.getConfiguration_q(0).elem(0);
+  start[1] = komo.getConfiguration_q(0).elem(1);
+  // start = std::vector<double>{0.5, 0.5};
 
   // create a goal state
   ob::ScopedState<> goal(space);
-  goal = std::vector<double>{1, 0};
+  // goal = std::vector<double>{1, 0};
+  goal = std::vector<double>{-2.32849, 1.38262}; 
 
   // set the start and goal states
   ss.setStartAndGoalStates(start, goal);
@@ -127,20 +132,21 @@ void planWithSimpleSetupKOMOinT2(){
         TorusState->getS2()
       };
       // std::cout << x_query << std::endl;
-      configs.push_back(x_query);
+      configs.append(x_query);
       C.setJointState(x_query);
       C.watch(true);
     }
     for (auto it = configs.begin(); it != configs.end(); it++)
-      cout << *it << " ";
+      i++;
+    std::cout << configs << std::endl;
   }
   else
     std::cout << "No solution found" << std::endl;
-  optimizeAndPlayMovie();
+  // optimizeAndPlayMovie();
 }
 
 int main(int /*argc*/,char** /*argv*/){
-  // planWithSimpleSetupKOMOinT2();
+  planWithSimpleSetupKOMOinT2();
   optimizeAndPlayMovie();
 
   return 0;
