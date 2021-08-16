@@ -3,6 +3,7 @@
 #include <ompl/base/spaces/special/TorusStateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/planners/prm/SPARS.h>
+#include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
 #include <ompl/config.h>
 
@@ -13,7 +14,7 @@ namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
 // std::vector<arr> configs;
-arrA configs;
+static arrA configs;
 static int i = 0;
 
 struct ValidityCheckWithKOMO {
@@ -51,15 +52,20 @@ void optimizeAndPlayMovie(){
   komo.setModel(C, true);
   
   komo.setTiming(1., 50, 5., 2);
-  komo.add_qControlObjective({}, 2, 1.);
+  komo.add_qControlObjective({}, 1, 50.);
 
-  komo.addObjective({1.}, FS_positionDiff, {"gripper", "ball"}, OT_sos, {1e1});
-  // komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {4.142,0}, 0);  //small velocity in that time frame
+  komo.addObjective({1.}, FS_positionDiff, {"gripper", "ball"}, OT_eq, {1e1});
+  // komo.addObjective({.98,1.}, FS_qItself, {}, OT_sos, {1e1}, {4.142,0}, 0);
+  // komo.addObjective({}, FS_qItself, {}, OT_ineq, {10.0}, {0.5,0.5}, 1);
+  // komo.addObjective({}, FS_qItself, {}, OT_ineq, {-10.0}, {0.5,0.5}, 1);
   komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1.});
   komo.add_collision(true);
   // komo.run_prepare(0);
 
-  komo.animateOptimization = 1;
+  // configs = {{1,1},{5,5}};
+  // i=2;
+
+  komo.animateOptimization = 2;
   komo.initWithWaypoints(configs , i, false); //Get these from the previous function
   komo.optimize();
   komo.plotTrajectory();
@@ -142,7 +148,7 @@ void planWithSimpleSetupKOMOinT2(){
   }
   else
     std::cout << "No solution found" << std::endl;
-  // optimizeAndPlayMovie();
+  optimizeAndPlayMovie();
 }
 
 int main(int /*argc*/,char** /*argv*/){
