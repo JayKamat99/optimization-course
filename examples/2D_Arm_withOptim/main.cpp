@@ -142,18 +142,18 @@ void planWithSimpleSetupKOMOinT2(){
       C.setJointState(x_query);
       C.watch(true);
     }
-    for (auto it = configs.begin(); it != configs.end(); it++)
-      i++;
-    std::cout << configs << std::endl;
-  }
-  else
-    std::cout << "No solution found" << std::endl;
-  optimizeAndPlayMovie();
+	for (auto it = configs.begin(); it != configs.end(); it++)
+		i++;
+		std::cout << configs << std::endl;
+	}
+	else
+		std::cout << "No solution found" << std::endl;
+	// optimizeAndPlayMovie();
 }
 
 int main(int /*argc*/,char** /*argv*/){
   planWithSimpleSetupKOMOinT2();
-  optimizeAndPlayMovie();
+  // optimizeAndPlayMovie();
 
   return 0;
 }

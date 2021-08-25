@@ -47,7 +47,7 @@ void plan()
 	space->setBounds(bounds);
 
 	// set state validity checking based on KOMO
-	auto filename = "2D_bot.g";
+	auto filename = "/home/jay/git/optimization-course/examples/Models/2D_bot.g";
 	rai::Configuration C;
 	C.addFile(filename);
 	KOMO komo;
@@ -121,7 +121,7 @@ void plan()
 
 void visualize_random()
 {
-	auto filename = "2D_bot.g";
+	auto filename = "/home/jay/git/optimization-course/examples/Models/2D_bot.g";
 	rai::Configuration C;
 	C.addFile(filename);
 	KOMO komo;
