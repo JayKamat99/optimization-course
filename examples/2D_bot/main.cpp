@@ -7,7 +7,7 @@
 #include <ompl/config.h>
 
 #include <KOMO/komo.h>
-#include <Kin/viewer.h>
+// #include <Kin/viewer.h>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -97,8 +97,8 @@ void plan()
     planner->setup();
 
 	// attempt to solve the problem within ten seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
-    if (solved)
+    ob::PlannerStatus solved = planner->ob::Planner::solve(20.0);
+    if (true)
     {
         std::cout << "Found solution:" << std::endl;
         auto localMinimaTree = planner->getLocalMinimaTree();
@@ -110,13 +110,14 @@ void plan()
         for (int i=0; i<NumberOfLevels; i++){
             for (int j=0; j<NumberOfMinima; j++){
                 std::cout << "\n New path[" << i << j << "] \n" << std::endl;
-                std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
+                // std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
                 // std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->printAsMatrix(out);
             }
         }
     }
     else
         std::cout << "No solution found" << std::endl;
+	std::cout << "I reached the end!" << std::endl;
 }
 
 void visualize_random()
@@ -156,6 +157,6 @@ int main(int /*argc*/, char ** /*argv*/)
 	// visualize_random();
 
 	plan();
-
+	std::cout << "I came out of Plan!" << std::endl;
 	return 0;
 }
