@@ -15,13 +15,9 @@ namespace om = ompl::multilevel;
 
 struct ValidityCheckWithKOMO {
 	KOMO::Conv_KOMO_SparseNonfactored &nlp;
-	ValidityCheckWithKOMO(KOMO::Conv_KOMO_SparseNonfactored &nlp) : nlp(nlp)
-	{
-	}
+	ValidityCheckWithKOMO(KOMO::Conv_KOMO_SparseNonfactored &nlp) : nlp(nlp){}
 	bool check(const ob::State *state)
 	{
-		// rai: uses quaternion with real part first
-		// ompl: uses quaternion with real part last
 		const auto *State = state->as<ob::SE2StateSpace::StateType>();
 
 		arr x_query =
@@ -46,10 +42,15 @@ void plan()
 	bounds.setHigh(2);
 	space->setBounds(bounds);
 
+	// Create a text string, which is used to output the text file
+	std::string filename;
+	ifstream MyReadFile("/home/jay/git/optimization-course/examples/Models/Configuration.txt");
+	getline (MyReadFile, filename);
+	MyReadFile.close(); 
+
 	// set state validity checking based on KOMO
-	auto filename = "/home/jay/git/optimization-course/examples/Models/2D_bot.g";
 	rai::Configuration C;
-	C.addFile(filename);
+	C.addFile(filename.c_str());
 	KOMO komo;
 	komo.setModel(C, true);
 	komo.setTiming(1, 1, 1, 1);
