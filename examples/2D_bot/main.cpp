@@ -4,10 +4,11 @@
 #include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
+// #include <ompl/geometric/PathOptimizerKOMO.h>
+
 #include <ompl/config.h>
 
 #include <KOMO/komo.h>
-// #include <Kin/viewer.h>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -89,12 +90,16 @@ void plan()
     // Set the start and goal states
     pdef->setStartAndGoalStates(start, goal);
 
+	//Define optimizer
+	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+
 	// Define planner
     std::cout << "\nUsing Local Minima Spanner:" << std::endl;
     std::vector<ob::SpaceInformationPtr> siVec;
     siVec.push_back(si);
     auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
     planner->setProblemDefinition(pdef);
+	// planner->SetOptimizer(optimizer);
     planner->setup();
 
 	// attempt to solve the problem within ten seconds of planning time
