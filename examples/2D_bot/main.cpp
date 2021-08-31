@@ -4,7 +4,7 @@
 #include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
-// #include <ompl/geometric/PathOptimizerKOMO.h>
+#include <ompl/geometric/PathOptimizerKOMO.h>
 
 #include <ompl/config.h>
 
@@ -13,6 +13,8 @@
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 namespace om = ompl::multilevel;
+
+std::string filename;
 
 struct ValidityCheckWithKOMO {
 	KOMO::Conv_KOMO_SparseNonfactored &nlp;
@@ -32,6 +34,23 @@ struct ValidityCheckWithKOMO {
 	}
 };
 
+void VisualizePath(arrA configs){
+	// setup KOMO
+    rai::Configuration C;
+    C.addFile(filename.c_str());
+    KOMO komo;
+    komo.verbose = 0;
+    komo.setModel(C, true);
+    
+    komo.setTiming(1., configs.N, 5., 2);
+
+    //use configs to initialize with waypoints
+    komo.initWithWaypoints(configs, configs.N, false);
+    komo.run_prepare(0);
+    komo.view(true);
+    komo.view_play(true);
+}
+
 void plan()
 {
 	// construct the state space we are planning in
@@ -44,7 +63,6 @@ void plan()
 	space->setBounds(bounds);
 
 	// Create a text string, which is used to output the text file
-	std::string filename;
 	ifstream MyReadFile("/home/jay/git/optimization-course/examples/Models/Configuration.txt");
 	getline (MyReadFile, filename);
 	MyReadFile.close(); 
@@ -91,7 +109,7 @@ void plan()
     pdef->setStartAndGoalStates(start, goal);
 
 	//Define optimizer
-	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+	og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
 
 	// Define planner
     std::cout << "\nUsing Local Minima Spanner:" << std::endl;
@@ -99,31 +117,42 @@ void plan()
     siVec.push_back(si);
     auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
     planner->setProblemDefinition(pdef);
-	// planner->SetOptimizer(optimizer);
+	planner->setOptimizer(optimizer);
     planner->setup();
 
 	// attempt to solve the problem within ten seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(20.0);
+    ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
     if (true)
     {
-        std::cout << "Found solution:" << std::endl;
-        auto localMinimaTree = planner->getLocalMinimaTree();
-        int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
-        int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
-        // std::ofstream out;
-        // out.open("Paths_out.txt", std::ios_base::app);
-        // out << NumberOfMinima*NumberOfLevels << "\n";
-        for (int i=0; i<NumberOfLevels; i++){
-            for (int j=0; j<NumberOfMinima; j++){
-                std::cout << "\n New path[" << i << j << "] \n" << std::endl;
-                // std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
-                // std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->printAsMatrix(out);
-            }
-        }
+		std::cout << "Found solution:" << std::endl;
+		auto localMinimaTree = planner->getLocalMinimaTree();
+		int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
+		int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
+
+		for (int i=0; i<NumberOfLevels; i++){
+			for (int j=0; j<NumberOfMinima; j++){
+				std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
+				auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
+				//convert path to arrA
+				arrA configs;
+				for (auto state : (*path).getStates())
+				{
+					arr config;
+					std::vector<double> reals;
+					space->copyToReals(reals, state);
+					for (double r : reals){
+						config.append(r);
+					}
+					configs.append(config);
+				}
+				//Visualize in KOMO
+				VisualizePath(configs);
+				std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
+			}
+		}
     }
     else
         std::cout << "No solution found" << std::endl;
-	std::cout << "I reached the end!" << std::endl;
 }
 
 void visualize_random()
@@ -163,6 +192,5 @@ int main(int /*argc*/, char ** /*argv*/)
 	// visualize_random();
 
 	plan();
-	std::cout << "I came out of Plan!" << std::endl;
 	return 0;
 }
