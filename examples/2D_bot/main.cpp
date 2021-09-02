@@ -43,6 +43,7 @@ void VisualizePath(arrA configs){
     komo.setModel(C, true);
     
     komo.setTiming(1., configs.N, 5., 2);
+	komo.add_qControlObjective({}, 1, 50.);
 
     //use configs to initialize with waypoints
     komo.initWithWaypoints(configs, configs.N, false);
@@ -63,7 +64,7 @@ void plan()
 	space->setBounds(bounds);
 
 	// Create a text string, which is used to output the text file
-	ifstream MyReadFile("/home/jay/git/optimization-course/examples/Models/Configuration.txt");
+	ifstream MyReadFile("../Models/Configuration.txt");
 	getline (MyReadFile, filename);
 	MyReadFile.close(); 
 
@@ -121,7 +122,7 @@ void plan()
     planner->setup();
 
 	// attempt to solve the problem within ten seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
+    ob::PlannerStatus solved = planner->ob::Planner::solve(5.0);
     if (true)
     {
 		std::cout << "Found solution:" << std::endl;
