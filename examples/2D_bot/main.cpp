@@ -5,6 +5,7 @@
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
 #include <ompl/geometric/PathOptimizerKOMO.h>
+#include <ompl/geometric/PathSimplifier.h>
 
 #include <ompl/config.h>
 
@@ -110,6 +111,7 @@ void plan()
     pdef->setStartAndGoalStates(start, goal);
 
 	//Define optimizer
+	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathSimplifier>(si);
 	og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
 
 	// Define planner
