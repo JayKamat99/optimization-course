@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/ProblemDefinition.h>
-#include <ompl/base/spaces/SE2StateSpace.h>
+#include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
 #include <ompl/geometric/PathOptimizerKOMO.h>
@@ -56,13 +56,13 @@ void VisualizePath(arrA configs){
 void plan()
 {
 	// construct the state space we are planning in
-	auto space(std::make_shared<ob::SE2StateSpace>());
+	// auto space(std::make_shared<ob::SE2StateSpace>());
 
-	// set the bounds
-	ob::RealVectorBounds bounds(2);
-	bounds.setLow(-2);
-	bounds.setHigh(2);
-	space->setBounds(bounds);
+	// // set the bounds
+	// ob::RealVectorBounds bounds(2);
+	// bounds.setLow(-2);
+	// bounds.setHigh(2);
+	// space->setBounds(bounds);
 
 	// Create a text string, which is used to output the text file
 	ifstream MyReadFile("../Models/Configuration.txt");
@@ -78,6 +78,14 @@ void plan()
 	komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, { 1 });
 	komo.run_prepare(0);
 
+	//Construct the state space we are planning in
+	auto space(std::make_shared<ob::RealVectorStateSpace>(C.getJointStateDimension()));
+
+	ob::RealVectorBounds bounds(C.getJointStateDimension());
+	bounds.setLow(-2);
+	bounds.setHigh(2);
+	space->setBounds(bounds);
+
 	// create instance of space information
     auto si(std::make_shared<ob::SpaceInformation>(space));
 
@@ -91,18 +99,19 @@ void plan()
 
     // create a start state
     ob::ScopedState<> start(space);
-	start = {0,0,0};
-	// start[0] = komo.getConfiguration_q(0).elem(0);
-	// start[1] = komo.getConfiguration_q(0).elem(1);
-	// start[2] = komo.getConfiguration_q(0).elem(2);
+	for (unsigned int i=0; i<C.getJointStateDimension(); i++){
+		start[i] = komo.getConfiguration_q(0).elem(i);
+	}
 
 	std::cout << start << std::endl;
 
     // create a goal state
     ob::ScopedState<> goal(space);
-    goal[0] = 1;
-    goal[1] = 1;
-	goal[2] = 0;
+		for (unsigned int i=0; i<C.getJointStateDimension(); i++){
+		goal[i] = komo.getConfiguration_q(0).elem(i)+1;
+	}
+
+	std::cout << goal << std::endl;
 
     // create an instance of problem definition
     auto pdef(std::make_shared<ob::ProblemDefinition>(si));
@@ -125,7 +134,7 @@ void plan()
 
 	// attempt to solve the problem within ten seconds of planning time
     ob::PlannerStatus solved = planner->ob::Planner::solve(5.0);
-    if (true)
+    if (solved || !solved)
     {
 		std::cout << "Found solution:" << std::endl;
 		auto localMinimaTree = planner->getLocalMinimaTree();
