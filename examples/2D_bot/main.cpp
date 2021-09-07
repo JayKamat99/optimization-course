@@ -16,16 +16,22 @@ namespace og = ompl::geometric;
 namespace om = ompl::multilevel;
 
 std::string filename;
+unsigned int C_Dimension;
 
 struct ValidityCheckWithKOMO {
 	KOMO::Conv_KOMO_SparseNonfactored &nlp;
 	ValidityCheckWithKOMO(KOMO::Conv_KOMO_SparseNonfactored &nlp) : nlp(nlp){}
 	bool check(const ob::State *state)
 	{
-		const auto *State = state->as<ob::SE2StateSpace::StateType>();
+		const auto *State = state->as<ob::RealVectorStateSpace::StateType>();
 
-		arr x_query =
-			arr{ State->getX(), State->getY(), State->getYaw() };
+		arr x_query;
+		for (unsigned int i = 0; i < C_Dimension; i++){
+			x_query.append(State->operator[](i));
+		}
+
+		// arr x_query =
+		// 	arr{ State->operator[](0), State->operator[](1), State->operator[](2) };
 
 		arr phi;
 		nlp.evaluate(phi, NoArr, x_query);
@@ -78,6 +84,8 @@ void plan()
 	komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, { 1 });
 	komo.run_prepare(0);
 
+	C_Dimension = C.getJointStateDimension();
+
 	//Construct the state space we are planning in
 	auto space(std::make_shared<ob::RealVectorStateSpace>(C.getJointStateDimension()));
 
@@ -107,8 +115,9 @@ void plan()
 
     // create a goal state
     ob::ScopedState<> goal(space);
-		for (unsigned int i=0; i<C.getJointStateDimension(); i++){
-		goal[i] = komo.getConfiguration_q(0).elem(i)+1;
+	for (unsigned int i=0; i<C.getJointStateDimension(); i++){
+		if (i>0)	continue;
+		goal[i] = komo.getConfiguration_q(0).elem(i);
 	}
 
 	std::cout << goal << std::endl;
@@ -133,7 +142,7 @@ void plan()
     planner->setup();
 
 	// attempt to solve the problem within ten seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(5.0);
+    ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
     if (solved || !solved)
     {
 		std::cout << "Found solution:" << std::endl;
