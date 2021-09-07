@@ -11,6 +11,8 @@
 
 #include <KOMO/komo.h>
 
+#define PI 3.1412
+
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 namespace om = ompl::multilevel;
@@ -59,17 +61,34 @@ void VisualizePath(arrA configs){
     komo.view_play(true);
 }
 
+void komoOptimize()
+{
+	// Create a text string, which is used to output the text file
+	ifstream MyReadFile("../Models/Configuration.txt");
+	getline (MyReadFile, filename);
+	MyReadFile.close(); 
+
+	// set state validity checking based on KOMO
+	rai::Configuration C;
+	C.addFile(filename.c_str());
+	KOMO komo;
+	komo.setModel(C, true);
+	komo.setTiming(1, 30, 5, 1);
+	komo.add_qControlObjective({}, 1, 50.);
+	komo.run_prepare(0);
+	komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, { 1 });
+	komo.addObjective({1.}, FS_positionDiff, {"tool0_joint", "ball"}, OT_eq, {1e1});
+	komo.add_collision(true);
+
+	komo.optimize();
+	std::cout << komo.getPath_q() << std::endl;
+	komo.plotTrajectory();
+	komo.view(true);
+	komo.view_play(true);
+}
+
 void plan()
 {
-	// construct the state space we are planning in
-	// auto space(std::make_shared<ob::SE2StateSpace>());
-
-	// // set the bounds
-	// ob::RealVectorBounds bounds(2);
-	// bounds.setLow(-2);
-	// bounds.setHigh(2);
-	// space->setBounds(bounds);
-
 	// Create a text string, which is used to output the text file
 	ifstream MyReadFile("../Models/Configuration.txt");
 	getline (MyReadFile, filename);
@@ -90,8 +109,8 @@ void plan()
 	auto space(std::make_shared<ob::RealVectorStateSpace>(C.getJointStateDimension()));
 
 	ob::RealVectorBounds bounds(C.getJointStateDimension());
-	bounds.setLow(-2);
-	bounds.setHigh(2);
+	bounds.setLow(-PI);
+	bounds.setHigh(PI);
 	space->setBounds(bounds);
 
 	// create instance of space information
@@ -116,9 +135,10 @@ void plan()
     // create a goal state
     ob::ScopedState<> goal(space);
 	for (unsigned int i=0; i<C.getJointStateDimension(); i++){
-		if (i>0)	continue;
-		goal[i] = komo.getConfiguration_q(0).elem(i);
+		if (i>3)	continue;
+		goal[i] = komo.getConfiguration_q(0).elem(i)+1.5;
 	}
+	// goal = {0.14, 0.70, 0.9, -1.33, 0, 0.4, 0};
 
 	std::cout << goal << std::endl;
 
@@ -211,7 +231,7 @@ int main(int /*argc*/, char ** /*argv*/)
 	/// \brief visualize_random samples random orientations and also checks
 	/// for collissions.
 	// visualize_random();
-
+	// komoOptimize();
 	plan();
 	return 0;
 }

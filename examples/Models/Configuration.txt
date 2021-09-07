@@ -1,1 +1,1 @@
-/home/jay/git/optimization-course/examples/Models/arm.g
+/home/jay/git/optimization-course/rai-robotModels/kuka_drake/kuka_multimodal.g
