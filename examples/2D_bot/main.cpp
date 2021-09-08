@@ -10,6 +10,7 @@
 #include <ompl/config.h>
 
 #include <KOMO/komo.h>
+#include <Kin/viewer.h>
 
 #define PI 3.1412
 
@@ -59,6 +60,13 @@ void VisualizePath(arrA configs){
     komo.run_prepare(0);
     komo.view(true);
     komo.view_play(true);
+
+	// rai::ConfigurationViewer V;
+	// // std::cout << komo.x << std::endl;
+	// V.setPath(C, komo.x, "result", true);
+	// while(V.playVideo(true));
+	// // V.update(true);
+	// // V.savePng();
 }
 
 void komoOptimize()
@@ -161,7 +169,7 @@ void plan()
 	planner->setOptimizer(optimizer);
     planner->setup();
 
-	// attempt to solve the problem within ten seconds of planning time
+	// attempt to solve the problem within sixty seconds of planning time
     ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
     if (solved || !solved)
     {
