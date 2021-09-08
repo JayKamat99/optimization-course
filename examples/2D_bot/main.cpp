@@ -123,9 +123,9 @@ void plan()
 	planner->setOptimizer(optimizer);
     planner->setup();
 
-	// attempt to solve the problem within ten seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(5.0);
-    if (true)
+	// attempt to solve the problem within sixty seconds of planning time
+    ob::PlannerStatus solved = planner->ob::Planner::solve(60.0);
+    if (solved)
     {
 		std::cout << "Found solution:" << std::endl;
 		auto localMinimaTree = planner->getLocalMinimaTree();
