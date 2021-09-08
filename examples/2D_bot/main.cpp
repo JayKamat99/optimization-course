@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/ProblemDefinition.h>
 #include <ompl/base/spaces/SE2StateSpace.h>
@@ -37,6 +38,7 @@ struct ValidityCheckWithKOMO {
 };
 
 void VisualizePath(arrA configs){
+	static int Trajectory = 1;
 	// setup KOMO
     rai::Configuration C;
     C.addFile(filename.c_str());
@@ -50,15 +52,15 @@ void VisualizePath(arrA configs){
     //use configs to initialize with waypoints
     komo.initWithWaypoints(configs, configs.N, false);
     komo.run_prepare(0);
-    komo.view(true);
-    komo.view_play(true);
+    // komo.view(true);
+    // komo.view_play(true);
+	komo.plotTrajectory();
 
 	rai::ConfigurationViewer V;
-	// std::cout << komo.x << std::endl;
 	V.setPath(C, komo.x, "result", true);
-	while(V.playVideo(true));
-	// V.update(true);
-	// V.savePng();
+	std::string SaveToPath = std::string("z.vid/Trajectory_") + std::to_string(Trajectory) + "/";
+	V.playVideo(true, 1., SaveToPath.c_str());
+	Trajectory ++;
 }
 
 void plan()
