@@ -10,6 +10,7 @@
 #include <ompl/config.h>
 
 #include <KOMO/komo.h>
+#include <Kin/viewer.h>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -51,6 +52,13 @@ void VisualizePath(arrA configs){
     komo.run_prepare(0);
     komo.view(true);
     komo.view_play(true);
+
+	rai::ConfigurationViewer V;
+	// std::cout << komo.x << std::endl;
+	V.setPath(C, komo.x, "result", true);
+	while(V.playVideo(true));
+	// V.update(true);
+	// V.savePng();
 }
 
 void plan()
