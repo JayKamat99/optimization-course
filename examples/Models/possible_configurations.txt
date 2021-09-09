@@ -1,0 +1,3 @@
+/home/jay/git/optimization-course/examples/Models/2D_bot.g
+
+home/jay/git/optimization-course/rai-robotModels/kuka_drake/kuka_multimodal.g
