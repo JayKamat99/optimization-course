@@ -30,11 +30,8 @@ struct ValidityCheckWithKOMO {
 
 		arr x_query;
 		for (unsigned int i = 0; i < C_Dimension; i++){
-			x_query.append(State->operator[](i));
+			x_query.append((*State)[i]);
 		}
-
-		// arr x_query =
-		// 	arr{ State->operator[](0), State->operator[](1), State->operator[](2) };
 
 		arr phi;
 		nlp.evaluate(phi, NoArr, x_query);
@@ -54,18 +51,21 @@ void VisualizePath(arrA configs){
     komo.setModel(C, true);
     
     komo.setTiming(1., configs.N, 5., 2);
-	komo.add_qControlObjective({}, 1, 50.);
+	komo.add_qControlObjective({}, 1, 1.);
+
+    // std::cout << configs << std::endl;
+    komo.addObjective({1.}, FS_qItself, {}, OT_eq, {10}, configs(configs.N-1), 0);
+    komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, {1.});
+    komo.add_collision(true);
 
     //use configs to initialize with waypoints
-    komo.initWithWaypoints(configs, configs.N, false);
+	komo.initWithWaypoints(configs, configs.N, false);
     komo.run_prepare(0);
-    // komo.view(true);
-    // komo.view_play(true);
 	komo.plotTrajectory();
+	std::string SaveToPath = std::string("z.vid/DisplayTrajectory_") + std::to_string(Trajectory) + "/";
 
 	rai::ConfigurationViewer V;
 	V.setPath(C, komo.x, "result", true);
-	std::string SaveToPath = std::string("z.vid/Trajectory_") + std::to_string(Trajectory) + "/";
 	V.playVideo(true, 1., SaveToPath.c_str());
 	Trajectory ++;
 }
@@ -171,38 +171,41 @@ void plan()
     planner->setup();
 
 	// attempt to solve the problem within sixty seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(10.0);
-    if (solved || !solved)
-    {
-		std::cout << "Found solution:" << std::endl;
-		auto localMinimaTree = planner->getLocalMinimaTree();
-		int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
-		int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
+    ob::PlannerStatus solved = planner->ob::Planner::solve(20.0);
 
-		for (int i=0; i<NumberOfLevels; i++){
-			for (int j=0; j<NumberOfMinima; j++){
-				std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
-				auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
-				//convert path to arrA
-				arrA configs;
-				for (auto state : (*path).getStates())
-				{
-					arr config;
-					std::vector<double> reals;
-					space->copyToReals(reals, state);
-					for (double r : reals){
-						config.append(r);
-					}
-					configs.append(config);
+    if (solved == ob::PlannerStatus::StatusType::APPROXIMATE_SOLUTION)
+		std::cout << "Found solution: APPROXIMATE_SOLUTION" << std::endl;
+	else if (solved == ob::PlannerStatus::StatusType::TIMEOUT)
+		std::cout << "Found solution: TIMEOUT" << std::endl;
+	else{
+		std::cout << "No solution found: Invalid " << std::endl;
+		return;
+ 	}
+	auto localMinimaTree = planner->getLocalMinimaTree();
+	int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
+	int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
+
+	for (int i=0; i<NumberOfLevels; i++){
+		for (int j=0; j<NumberOfMinima; j++){
+			std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
+			auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
+			//convert path to arrA
+			arrA configs;
+			for (auto state : (*path).getStates())
+			{
+				arr config;
+				std::vector<double> reals;
+				space->copyToReals(reals, state);
+				for (double r : reals){
+					config.append(r);
 				}
-				//Visualize in KOMO
-				VisualizePath(configs);
-				std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
+				configs.append(config);
 			}
+			//Visualize in KOMO
+			VisualizePath(configs);
+			std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
 		}
     }
-    else
-        std::cout << "No solution found" << std::endl;
 }
 
 void visualize_random()
