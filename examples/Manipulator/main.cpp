@@ -4,6 +4,9 @@
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
 
+#include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
+#include <ompl/base/samplers/GaussianValidStateSampler.h>
+
 #include <ompl/geometric/PathOptimizerKOMO.h>
 #include <ompl/geometric/PathSimplifier.h>
 
@@ -40,6 +43,20 @@ struct ValidityCheckWithKOMO {
 		return std::abs(phi(0)) < tol;
 	}
 };
+
+ob::ValidStateSamplerPtr allocOBValidStateSampler(const ob::SpaceInformation *si)
+{
+    // we can perform any additional setup / configuration of a sampler here,
+    // but there is nothing to tweak in case of the ObstacleBasedValidStateSampler.
+    return std::make_shared<ob::ObstacleBasedValidStateSampler>(si);
+}
+
+ob::ValidStateSamplerPtr allocGaussianValidStateSampler(const ob::SpaceInformation *si)
+{
+    // we can perform any additional setup / configuration of a sampler here,
+    // but there is nothing to tweak in case of the ObstacleBasedValidStateSampler.
+    return std::make_shared<ob::GaussianValidStateSampler>(si);
+}
 
 void VisualizePath(arrA configs){
 	static int Trajectory = 1;
@@ -132,6 +149,9 @@ void plan()
 	si->setStateValidityChecker([&checker](const ob::State *state) {
 		return checker.check(state);
 	});
+
+	// si->setValidStateSamplerAllocator(allocOBValidStateSampler);
+	si->setValidStateSamplerAllocator(allocGaussianValidStateSampler);
 
     // create a start state
     ob::ScopedState<> start(space);
