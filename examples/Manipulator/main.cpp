@@ -1,8 +1,14 @@
 #include <iostream>
+#include <functional>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/ProblemDefinition.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/est/EST.h>
 #include <ompl/multilevel/planners/multimodal/LocalMinimaSpanners.h>
+#include <ompl/geometric/SimpleSetup.h>
+#include <ompl/tools/benchmark/Benchmark.h>
 
 #include <ompl/base/samplers/ObstacleBasedValidStateSampler.h>
 #include <ompl/base/samplers/GaussianValidStateSampler.h>
@@ -46,15 +52,11 @@ struct ValidityCheckWithKOMO {
 
 ob::ValidStateSamplerPtr allocOBValidStateSampler(const ob::SpaceInformation *si)
 {
-    // we can perform any additional setup / configuration of a sampler here,
-    // but there is nothing to tweak in case of the ObstacleBasedValidStateSampler.
     return std::make_shared<ob::ObstacleBasedValidStateSampler>(si);
 }
 
 ob::ValidStateSamplerPtr allocGaussianValidStateSampler(const ob::SpaceInformation *si)
 {
-    // we can perform any additional setup / configuration of a sampler here,
-    // but there is nothing to tweak in case of the ObstacleBasedValidStateSampler.
     return std::make_shared<ob::GaussianValidStateSampler>(si);
 }
 
@@ -113,6 +115,11 @@ void komoOptimize()
 	komo.view_play(true);
 }
 
+// og::SimpleSetup createSimpleSetup()
+// {
+// 	return ss;
+// }
+
 void plan()
 {
 	// Create a text string, which is used to output the text file
@@ -132,9 +139,9 @@ void plan()
 	C_Dimension = C.getJointStateDimension();
 
 	//Construct the state space we are planning in
-	auto space(std::make_shared<ob::RealVectorStateSpace>(C.getJointStateDimension()));
+	auto space(std::make_shared<ob::RealVectorStateSpace>(C_Dimension));
 
-	ob::RealVectorBounds bounds(C.getJointStateDimension());
+	ob::RealVectorBounds bounds(C_Dimension);
 	bounds.setLow(-PI);
 	bounds.setHigh(PI);
 	space->setBounds(bounds);
@@ -150,8 +157,8 @@ void plan()
 		return checker.check(state);
 	});
 
-	// si->setValidStateSamplerAllocator(allocOBValidStateSampler);
-	si->setValidStateSamplerAllocator(allocGaussianValidStateSampler);
+	si->setValidStateSamplerAllocator(allocOBValidStateSampler);
+	// si->setValidStateSamplerAllocator(allocGaussianValidStateSampler);
 
     // create a start state
     ob::ScopedState<> start(space);
@@ -167,7 +174,7 @@ void plan()
 		if (i>3)	continue;
 		goal[i] = komo.getConfiguration_q(0).elem(i)+1.5;
 	}
-	// goal = {0.14, 0.70, 0.9, -1.33, 0, 0.4, 0};
+	goal = {-1,-1};
 
 	std::cout << goal << std::endl;
 
@@ -188,10 +195,15 @@ void plan()
     auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
     planner->setProblemDefinition(pdef);
 	planner->setOptimizer(optimizer);
-    planner->setup();
+    // planner->setup();
+	og::SimpleSetup ss(si);
+	ss.setPlanner(planner);
+	ss.setStartAndGoalStates(start,goal);
+	ss.setup();
 
 	// attempt to solve the problem within sixty seconds of planning time
-    ob::PlannerStatus solved = planner->ob::Planner::solve(20.0);
+    // ob::PlannerStatus solved = planner->ob::Planner::solve(20.0);
+	ob::PlannerStatus solved = ss.solve(10.0);
 
     if (solved == ob::PlannerStatus::StatusType::APPROXIMATE_SOLUTION)
 		std::cout << "Found solution: APPROXIMATE_SOLUTION" << std::endl;
@@ -228,33 +240,174 @@ void plan()
     }
 }
 
-void visualize_random()
+ompl::base::PlannerPtr myConfiguredPlanner(const ompl::base::SpaceInformationPtr &si)
 {
-	auto filename = "/home/jay/git/optimization-course/examples/Models/2D_bot.g";
+    og::EST *est = new og::EST(si);
+    est->setRange(100.0);
+    return ompl::base::PlannerPtr(est);
+	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+    // std::vector<ob::SpaceInformationPtr> siVec;
+    // siVec.push_back(si);
+    // auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
+	// planner->setOptimizer(optimizer);
+	// return ompl::base::PlannerPtr(planner);
+}
+
+void benchmark()
+{
+	// Create a text string, which is used to output the text file
+	ifstream MyReadFile("../Models/Configuration.txt");
+	getline (MyReadFile, filename);
+	MyReadFile.close(); 
+
+	// set state validity checking based on KOMO
 	rai::Configuration C;
-	C.addFile(filename);
+	C.addFile(filename.c_str());
 	KOMO komo;
 	komo.setModel(C, true);
 	komo.setTiming(1, 1, 1, 1);
 	komo.addObjective({}, FS_accumulatedCollisions, {}, OT_eq, { 1 });
 	komo.run_prepare(0);
 
-	auto nlp = std::make_shared<KOMO::Conv_KOMO_SparseNonfactored>(komo,
-								       false);
+	C_Dimension = C.getJointStateDimension();
 
-	ObjectiveTypeA ot;
-	nlp->getFeatureTypes(ot);
-	C.watch(true);
+	//Construct the state space we are planning in
+	auto space(std::make_shared<ob::RealVectorStateSpace>(C_Dimension));
 
-	arr phi;
-	size_t N = 20;
-	for (size_t i = 0; i < N; i++) {
-		arr pose = rand(3);
-		C.setJointState(pose);
-		nlp->evaluate(phi, NoArr, pose);
-		std::cout << pose << " " << phi << std::endl;
-		std::cout << komo.getConfiguration_q(0) << std::endl;
-		C.watch(true);
+	ob::RealVectorBounds bounds(C_Dimension);
+	bounds.setLow(-PI);
+	bounds.setHigh(PI);
+	space->setBounds(bounds);
+
+	//create simple setup
+	og::SimpleSetup ss(space);
+
+    // set state validity checking for this space
+	auto nlp = std::make_shared<KOMO::Conv_KOMO_SparseNonfactored>(komo, false);
+	ValidityCheckWithKOMO checker(*nlp);
+
+	ss.setStateValidityChecker([&checker](const ob::State *state) {
+		return checker.check(state);
+	});
+
+	// si->setValidStateSamplerAllocator(allocOBValidStateSampler);
+	// si->setValidStateSamplerAllocator(allocGaussianValidStateSampler);
+
+    // create a start state
+    ob::ScopedState<> start(space);
+	for (unsigned int i=0; i<C.getJointStateDimension(); i++){
+		start[i] = komo.getConfiguration_q(0).elem(i);
+	}
+
+	std::cout << start << std::endl;
+
+    // create a goal state
+    ob::ScopedState<> goal(space);
+	for (unsigned int i=0; i<C.getJointStateDimension(); i++){
+		if (i>3)	continue;
+		goal[i] = komo.getConfiguration_q(0).elem(i)+1.5;
+	}
+	goal = {2,0};
+
+	std::cout << goal << std::endl;
+
+    // create an instance of problem definition
+    // auto pdef(std::make_shared<ob::ProblemDefinition>(si));
+
+    // Set the start and goal states
+    ss.setStartAndGoalStates(start, goal);
+	// auto si = ss.getSpaceInformation();
+
+	// //Define optimizer
+	// // og::PathOptimizerPtr optimizer = std::make_shared<og::PathSimplifier>(si);
+	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+
+	bool benchmark=false;
+
+	if(benchmark)
+	{
+		// First we create a benchmark class:
+		ompl::tools::Benchmark b(ss, "my experiment");
+		
+		// Optionally, specify some benchmark parameters (doesn't change how the benchmark is run)
+		// b.addExperimentParameter("num_dofs", "INTEGER", "6");
+		// b.addExperimentParameter("num_obstacles", "INTEGER", "10");
+		
+		// We add the planners to evaluate.
+		// b.addPlanner(ob::PlannerPtr(new og::RRT(ss.getSpaceInformation())));
+		b.addPlanner(ob::PlannerPtr(new og::RRTstar(ss.getSpaceInformation())));
+		// etc
+		
+		// For planners that we want to configure in specific ways,
+		// the ompl::base::PlannerAllocator should be used:
+		// b.addPlannerAllocator(std::bind(&myConfiguredPlanner, std::placeholders::_1));
+		// add post run events
+		// collect costs over time
+		// etc.
+		
+		// Now we can benchmark: 5 second time limit for each plan computation,
+		// 100 MB maximum memory usage per plan computation, 50 runs for each planner
+		// and true means that a text-mode progress bar should be displayed while
+		// computation is running.
+		ompl::tools::Benchmark::Request req;
+		req.maxTime = 10.0;
+		req.maxMem = 100.0;
+		req.runCount = 5;
+		req.displayProgress = true;
+		b.benchmark(req);
+		
+		// This will generate a file of the form ompl_host_time.log
+		b.saveResultsToFile();
+	}
+
+	else{
+		auto si = ss.getSpaceInformation();
+
+		og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+
+		std::vector<ob::SpaceInformationPtr> siVec;
+		siVec.push_back(si);
+		auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
+		planner->setOptimizer(optimizer);
+		ss.setPlanner(planner);
+		ss.setup();
+
+		// attempt to solve the problem
+		ob::PlannerStatus solved = ss.solve(10.0);
+
+		if (solved == ob::PlannerStatus::StatusType::APPROXIMATE_SOLUTION)
+			std::cout << "Found solution: APPROXIMATE_SOLUTION" << std::endl;
+		else if (solved == ob::PlannerStatus::StatusType::TIMEOUT)
+			std::cout << "Found solution: TIMEOUT" << std::endl;
+		else{
+			std::cout << "No solution found: Invalid " << std::endl;
+			return;
+		}
+		auto localMinimaTree = planner->getLocalMinimaTree();
+		int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
+		int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
+
+		for (int i=0; i<NumberOfLevels; i++){
+			for (int j=0; j<NumberOfMinima; j++){
+				std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
+				auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
+				//convert path to arrA
+				arrA configs;
+				for (auto state : (*path).getStates())
+				{
+					arr config;
+					std::vector<double> reals;
+					space->copyToReals(reals, state);
+					for (double r : reals){
+						config.append(r);
+					}
+					configs.append(config);
+				}
+				//Visualize in KOMO
+				VisualizePath(configs);
+				std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
+			}
+		}
 	}
 }
 
@@ -262,8 +415,7 @@ int main(int /*argc*/, char ** /*argv*/)
 {
 	/// \brief visualize_random samples random orientations and also checks
 	/// for collissions.
-	// visualize_random();
-	// komoOptimize();
-	plan();
+	// plan();
+	benchmark();
 	return 0;
 }
