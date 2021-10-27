@@ -123,7 +123,8 @@ void komoOptimize()
 void plan()
 {
 	// Create a text string, which is used to output the text file
-	ifstream MyReadFile("../Models/Configuration.txt");
+	// ifstream MyReadFile("../Models/Configuration.txt");
+	ifstream MyReadFile("/home/jay/mt-multimodal_optimization/Models/Configuration.txt");
 	getline (MyReadFile, filename);
 	MyReadFile.close(); 
 
@@ -255,8 +256,11 @@ ompl::base::PlannerPtr myConfiguredPlanner(const ompl::base::SpaceInformationPtr
 
 void benchmark()
 {
+	bool benchmark=false;
+	bool PathOptimizer = true;
 	// Create a text string, which is used to output the text file
-	ifstream MyReadFile("../Models/Configuration.txt");
+	// ifstream MyReadFile("../Models/Configuration.txt");
+	ifstream MyReadFile("/home/jay/mt-multimodal_optimization/Models/Configuration.txt");
 	getline (MyReadFile, filename);
 	MyReadFile.close(); 
 
@@ -322,7 +326,6 @@ void benchmark()
 	// // og::PathOptimizerPtr optimizer = std::make_shared<og::PathSimplifier>(si);
 	// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
 
-	bool benchmark=false;
 
 	if(benchmark)
 	{
@@ -350,9 +353,9 @@ void benchmark()
 		// and true means that a text-mode progress bar should be displayed while
 		// computation is running.
 		ompl::tools::Benchmark::Request req;
-		req.maxTime = 10.0;
+		req.maxTime = 20.0;
 		req.maxMem = 100.0;
-		req.runCount = 5;
+		req.runCount = 1;
 		req.displayProgress = true;
 		b.benchmark(req);
 		
@@ -362,14 +365,20 @@ void benchmark()
 
 	else{
 		auto si = ss.getSpaceInformation();
-
-		og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
-
 		std::vector<ob::SpaceInformationPtr> siVec;
 		siVec.push_back(si);
-		auto planner = std::make_shared<om::LocalMinimaSpanners>(siVec);
-		planner->setOptimizer(optimizer);
-		ss.setPlanner(planner);
+		auto planner1 = std::make_shared<om::LocalMinimaSpanners>(siVec);
+
+		if (PathOptimizer){
+			og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+			planner1->setOptimizer(optimizer);
+			ss.setPlanner(planner1);
+		}
+		else{
+			auto planner(std::make_shared<og::RRTstar>(si));
+			ss.setPlanner(planner);
+		}
+		
 		ss.setup();
 
 		// attempt to solve the problem
@@ -377,36 +386,57 @@ void benchmark()
 
 		if (solved == ob::PlannerStatus::StatusType::APPROXIMATE_SOLUTION)
 			std::cout << "Found solution: APPROXIMATE_SOLUTION" << std::endl;
+		else if (solved == ob::PlannerStatus::StatusType::EXACT_SOLUTION)
+			std::cout << "Found solution: EXACT_SOLUTION" << std::endl;
 		else if (solved == ob::PlannerStatus::StatusType::TIMEOUT)
 			std::cout << "Found solution: TIMEOUT" << std::endl;
 		else{
 			std::cout << "No solution found: Invalid " << std::endl;
 			return;
 		}
-		auto localMinimaTree = planner->getLocalMinimaTree();
-		int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
-		int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
 
-		for (int i=0; i<NumberOfLevels; i++){
-			for (int j=0; j<NumberOfMinima; j++){
-				std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
-				auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
-				//convert path to arrA
-				arrA configs;
-				for (auto state : (*path).getStates())
-				{
-					arr config;
-					std::vector<double> reals;
-					space->copyToReals(reals, state);
-					for (double r : reals){
-						config.append(r);
+		if(PathOptimizer){ //This code is for visualization of the paths from PathOptimizer
+			auto localMinimaTree = planner1->getLocalMinimaTree();
+			int NumberOfMinima =  (int)localMinimaTree->getNumberOfMinima();
+			int NumberOfLevels =  (int)localMinimaTree->getNumberOfLevel();
+
+			for (int i=0; i<NumberOfLevels; i++){
+				for (int j=0; j<NumberOfMinima; j++){
+					std::cout << "\nNew path[" << i << j+1 << "] \n" << std::endl;
+					auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr());
+					//convert path to arrA
+					arrA configs;
+					for (auto state : (*path).getStates())
+					{
+						arr config;
+						std::vector<double> reals;
+						space->copyToReals(reals, state);
+						for (double r : reals){
+							config.append(r);
+						}
+						configs.append(config);
 					}
-					configs.append(config);
+					//Visualize in KOMO
+					VisualizePath(configs);
+					std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
 				}
-				//Visualize in KOMO
-				VisualizePath(configs);
-				std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(localMinimaTree->getPath(i,j)->asPathPtr())->print(std::cout);
 			}
+		}
+		else{// This is for visualization of paths from other planners
+			auto path = ss.getSolutionPath();
+			arrA configs;
+			for (auto state : path.getStates())
+			{
+				arr config;
+				std::vector<double> reals;
+				space->copyToReals(reals, state);
+				for (double r : reals){
+					config.append(r);
+				}
+				configs.append(config);
+			}
+			//Visualize in KOMO
+			VisualizePath(configs);
 		}
 	}
 }
