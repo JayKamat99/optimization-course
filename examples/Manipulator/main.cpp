@@ -256,8 +256,8 @@ ompl::base::PlannerPtr myConfiguredPlanner(const ompl::base::SpaceInformationPtr
 
 void benchmark()
 {
-	bool benchmark=false;
-	bool PathOptimizer = true;
+	bool benchmark = true;
+	bool PathOptimizer = true; //this does not matter incase of benchmark
 	// Create a text string, which is used to output the text file
 	// ifstream MyReadFile("../Models/Configuration.txt");
 	ifstream MyReadFile("/home/jay/mt-multimodal_optimization/Models/Configuration.txt");
@@ -331,15 +331,18 @@ void benchmark()
 	{
 		// First we create a benchmark class:
 		ompl::tools::Benchmark b(ss, "my experiment");
-		
-		// Optionally, specify some benchmark parameters (doesn't change how the benchmark is run)
-		// b.addExperimentParameter("num_dofs", "INTEGER", "6");
-		// b.addExperimentParameter("num_obstacles", "INTEGER", "10");
-		
-		// We add the planners to evaluate.
-		// b.addPlanner(ob::PlannerPtr(new og::RRT(ss.getSpaceInformation())));
-		b.addPlanner(ob::PlannerPtr(new og::RRTstar(ss.getSpaceInformation())));
-		// etc
+
+		auto si = ss.getSpaceInformation();
+		std::vector<ob::SpaceInformationPtr> siVec;
+		siVec.push_back(si);
+		//RRTstar
+		// auto planner1(std::make_shared<og::RRTstar>(si));
+		// b.addPlanner(planner1);
+		//MyPlanner
+		auto planner(std::make_shared<om::LocalMinimaSpanners>(siVec));
+		og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+		planner->setOptimizer(optimizer);
+		b.addPlanner(planner);
 		
 		// For planners that we want to configure in specific ways,
 		// the ompl::base::PlannerAllocator should be used:
@@ -353,7 +356,7 @@ void benchmark()
 		// and true means that a text-mode progress bar should be displayed while
 		// computation is running.
 		ompl::tools::Benchmark::Request req;
-		req.maxTime = 20.0;
+		req.maxTime = 5.0;
 		req.maxMem = 100.0;
 		req.runCount = 1;
 		req.displayProgress = true;
@@ -446,6 +449,7 @@ int main(int /*argc*/, char ** /*argv*/)
 	/// \brief visualize_random samples random orientations and also checks
 	/// for collissions.
 	// plan();
+	std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
 	benchmark();
 	return 0;
 }
