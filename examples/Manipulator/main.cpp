@@ -256,11 +256,11 @@ ompl::base::PlannerPtr myConfiguredPlanner(const ompl::base::SpaceInformationPtr
 
 void benchmark()
 {
-	bool benchmark = true;
+	bool benchmark = false;
 	bool PathOptimizer = true; //this does not matter incase of benchmark
 	// Create a text string, which is used to output the text file
 	// ifstream MyReadFile("../Models/Configuration.txt");
-	ifstream MyReadFile("/home/jay/mt-multimodal_optimization/Models/Configuration.txt");
+	ifstream MyReadFile("../Models/Configuration.txt");
 	getline (MyReadFile, filename);
 	MyReadFile.close(); 
 
@@ -311,7 +311,7 @@ void benchmark()
 		if (i>3)	continue;
 		goal[i] = komo.getConfiguration_q(0).elem(i)+1.5;
 	}
-	goal = {2,0};
+	// goal = {2,0};
 
 	std::cout << goal << std::endl;
 
@@ -336,13 +336,13 @@ void benchmark()
 		std::vector<ob::SpaceInformationPtr> siVec;
 		siVec.push_back(si);
 		//RRTstar
-		// auto planner1(std::make_shared<og::RRTstar>(si));
-		// b.addPlanner(planner1);
+		auto planner1(std::make_shared<og::RRTstar>(si));
+		b.addPlanner(planner1);
 		//MyPlanner
-		auto planner(std::make_shared<om::LocalMinimaSpanners>(siVec));
-		og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
-		planner->setOptimizer(optimizer);
-		b.addPlanner(planner);
+		// auto planner(std::make_shared<om::LocalMinimaSpanners>(siVec));
+		// og::PathOptimizerPtr optimizer = std::make_shared<og::PathOptimizerKOMO>(si);
+		// planner->setOptimizer(optimizer);
+		// b.addPlanner(planner);
 		
 		// For planners that we want to configure in specific ways,
 		// the ompl::base::PlannerAllocator should be used:
